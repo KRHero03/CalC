@@ -256,6 +256,10 @@ public class MainScreen {
                     if (st.isEmpty()) {
                         st.push(l);
                     } else {
+                        if(st.peek().id.equals("openBracket")){
+                            st.push(l);
+                            continue;
+                        }
                         while (!st.isEmpty() && getPrecedence(st.peek().op) >= getPrecedence(l.op)) {
                             postfix.add(st.peek());
                             st.pop();

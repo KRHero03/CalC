@@ -149,9 +149,11 @@ public class MainScreen {
             return 4;
         if (isTrigonometryOp(id) || isLogOp(id))
             return 5;
-        if(isFactorialOp(id) || id.equals("-"))
+        if(id.equals("-"))
             return 6;
-        return 7;
+        if(isFactorialOp(id))
+            return 7;
+        return 8;
     }
 
     private boolean isDouble(double val) {
@@ -238,7 +240,10 @@ public class MainScreen {
             } else if (isCloseBracket(t.id)) {
                 arr.add(new Literal(-1, "closeBracket", "X"));
             } else if (isBinaryOp(t.id)) {
-                if(t.id.equals("-")) arr.add(new Literal(-1,"binaryOp","+"));
+                if(t.id.equals("-")){
+                    arr.add(new Literal(0,"number","X"));
+                    arr.add(new Literal(-1,"binaryOp","+"));
+                } 
                     arr.add(new Literal(-1, "binaryOp", t.id));
             } else if (isFactorialOp(t.id) || isTrigonometryOp(t.id) || isLogOp(t.id)) {
                 arr.add(new Literal(-1, "unaryOp", t.id));
@@ -430,8 +435,6 @@ public class MainScreen {
 
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            JOptionPane.showMessageDialog(frame, "Invalid Expression: Please enter valid Expression!", "CalC: Error",
-                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -510,7 +513,7 @@ public class MainScreen {
             stack.add(new Symbol("" + n, top.balancer, -1, "" + n, -1));
         } else if (isOpenBracket(top.id)) {      
             if (n.equals("-")) {
-                stack.add(new Symbol("" + n, 0, -1, "" + n, -1));
+                stack.add(new Symbol("" + n,top.balancer, -1, "" + n, -1));
             }
         } else if (isCloseBracket(top.id)) {
             stack.add(new Symbol("" + n, top.balancer, -1, "" + n, -1));

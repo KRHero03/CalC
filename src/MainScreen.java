@@ -310,7 +310,13 @@ public class MainScreen {
                     case "-":
                         op1 = finalStack.peek();
                         finalStack.pop();
-                        val = 0- op1;
+                        if(finalStack.size()==0){
+                            finalStack.push(op1);
+                            break;
+                        }
+                        op2 = finalStack.peek();
+                        finalStack.pop();
+                        val = op2 - op1;
                         finalStack.push(val);
                         break;
                     case "*":

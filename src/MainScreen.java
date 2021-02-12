@@ -44,6 +44,10 @@ public class MainScreen {
             System.out.println("DEBUG " + this.id + " " + this.val + " " + this.op);
         }
 
+        @Override
+        public String toString() {
+            return "id = " + this.id + ", val = " + this.val + "Operation = " + this.op;
+        }
     }
 
     private class CustomDispatcher implements KeyEventDispatcher {
@@ -242,7 +246,6 @@ public class MainScreen {
             } else if (isBinaryOp(t.id)) {
                 if(t.id.equals("-")){
                     arr.add(new Literal(0,"number","X"));
-                    arr.add(new Literal(-1,"binaryOp","+"));
                 } 
                     arr.add(new Literal(-1, "binaryOp", t.id));
             } else if (isFactorialOp(t.id) || isTrigonometryOp(t.id) || isLogOp(t.id)) {

@@ -220,6 +220,7 @@ public class MainScreen {
             stack.add(new Symbol(")", top.balancer - 1, -1, ")", -1));
             extraBrackets--;
         }
+        int sign = 1;
         ArrayList<Literal> arr = new ArrayList<Literal>();
         for (int i = 0; i < stack.size(); i++) {
             Symbol t = stack.get(i);
@@ -233,7 +234,8 @@ public class MainScreen {
                         break;
                     t = stack.get(j);
                 }
-                arr.add(new Literal(val, "number", "X"));
+                
+                arr.add(new Literal(val*sign, "number", "X"));
                 i = j - 1;
             } else if (isOpenBracket(t.id)) {
                 arr.add(new Literal(-1, "openBracket", "X"));
@@ -241,10 +243,15 @@ public class MainScreen {
                 arr.add(new Literal(-1, "closeBracket", "X"));
             } else if (isBinaryOp(t.id)) {
                 if(t.id.equals("-")){
-                    arr.add(new Literal(0,"number","X"));
-                    arr.add(new Literal(-1,"binaryOp","+"));
-                } 
+                    sign = -1;
+                    arr.add(new Literal(-1, "binaryOp", "+"));
+                }else if(t.id.equals("+")){
+                    sign = 1;
+                    arr.add(new Literal(-1, "binaryOp", "+"));
+                }else{
+                    sign = 1;
                     arr.add(new Literal(-1, "binaryOp", t.id));
+                }
             } else if (isFactorialOp(t.id) || isTrigonometryOp(t.id) || isLogOp(t.id)) {
                 arr.add(new Literal(-1, "unaryOp", t.id));
             }
@@ -252,24 +259,26 @@ public class MainScreen {
         try {
             ArrayList<Literal> postfix = new ArrayList<Literal>();
             Stack<Literal> st = new Stack<Literal>();
-
             for (int i = 0; i < arr.size(); i++) {
                 Literal l = arr.get(i);
                 if (l.id.equals("number"))
                     postfix.add(l);
                 else if (l.id.equals("binaryOp") || l.id.equals("unaryOp")) {
                     if (st.isEmpty()) {
-                        st.push(l);
-                    } else {
-                        if(st.peek().id.equals("openBracket")){
+                        if(!l.op.equals("+")) 
                             st.push(l);
+                    } else {
+                        if(st.peek().id.equals("openBracket")){                            
+                            if(!l.op.equals("+")) 
+                                st.push(l);
                             continue;
                         }
                         while (!st.isEmpty() && getPrecedence(st.peek().op) >= getPrecedence(l.op)) {
                             postfix.add(st.peek());
                             st.pop();
                         }
-                        st.push(l);
+                        if(!l.op.equals("+")) 
+                            st.push(l);
                     }
                 } else if (l.id.equals("openBracket")) {
                     st.push(l);
@@ -285,6 +294,9 @@ public class MainScreen {
                 postfix.add(st.peek());
                 st.pop();
             }
+            postfix.forEach((p)->{
+                p.debug();
+            });
             Stack<Double> finalStack = new Stack<Double>();
             for (int i = 0; i < postfix.size(); i++) {
                 Literal l = postfix.get(i);
@@ -420,7 +432,11 @@ public class MainScreen {
                 }
             }
             stack.clear();
-            double finalAns = finalStack.peek();
+            double finalAns = 0;
+            while(!finalStack.empty()){
+                finalAns += finalStack.peek();
+                finalStack.pop();
+            }
             if(finalAns==0) return;
             String s = String.format("%.4f", finalAns);
             for (int i = 0; i < s.length(); i++) {
@@ -837,7 +853,6 @@ public class MainScreen {
                         CLR();
                     } else if (text.equals("DEL")) {
                         DEL();
-
                     } else if (text.equals("ANS")) {
                         ANS();
                     } else {

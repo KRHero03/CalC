@@ -134,10 +134,12 @@ public class MainScreen {
         return id.equals(")");
     }
 
-    private int getPrecedence(String id) {
+    private int getPrecedence(Literal l) {
+        String id = l.op;
+        String type = l.id;
         if (id.equals("(") || id.equals(")"))
             return -1;
-        if (id.equals("+"))
+        if (id.equals("+") || (id.equals("-") && type.equals("binaryOp")))
             return 0;
         if (id.equals("*"))
             return 1;
@@ -149,9 +151,9 @@ public class MainScreen {
             return 4;
         if (isTrigonometryOp(id) || isLogOp(id))
             return 5;
-        if(id.equals("-"))
+        if (id.equals("-") && type.equals("unaryOp"))
             return 6;
-        if(isFactorialOp(id))
+        if (isFactorialOp(id))
             return 7;
         return 8;
     }
@@ -220,7 +222,6 @@ public class MainScreen {
             stack.add(new Symbol(")", top.balancer - 1, -1, ")", -1));
             extraBrackets--;
         }
-        int sign = 1;
         ArrayList<Literal> arr = new ArrayList<Literal>();
         for (int i = 0; i < stack.size(); i++) {
             Symbol t = stack.get(i);
@@ -234,22 +235,26 @@ public class MainScreen {
                         break;
                     t = stack.get(j);
                 }
-                
-                arr.add(new Literal(val*sign, "number", "X"));
+
+                arr.add(new Literal(val, "number", "X"));
                 i = j - 1;
             } else if (isOpenBracket(t.id)) {
                 arr.add(new Literal(-1, "openBracket", "X"));
             } else if (isCloseBracket(t.id)) {
                 arr.add(new Literal(-1, "closeBracket", "X"));
             } else if (isBinaryOp(t.id)) {
-                if(t.id.equals("-")){
-                    sign = -1;
-                    arr.add(new Literal(-1, "binaryOp", "+"));
-                }else if(t.id.equals("+")){
-                    sign = 1;
-                    arr.add(new Literal(-1, "binaryOp", "+"));
-                }else{
-                    sign = 1;
+                if (t.id.equals("-")) {
+                    if(arr.size()==0){
+                        arr.add(new Literal(-1, "unaryOp", t.id));
+                    }else{
+                        Literal l = arr.get(arr.size()-1);
+                        if(l.id.equals("binaryOp") || l.id.equals("openBracket")){
+                            arr.add(new Literal(-1, "unaryOp", t.id));
+                        }else{
+                            arr.add(new Literal(-1, "binaryOp", t.id));
+                        }
+                    }
+                } else {
                     arr.add(new Literal(-1, "binaryOp", t.id));
                 }
             } else if (isFactorialOp(t.id) || isTrigonometryOp(t.id) || isLogOp(t.id)) {
@@ -265,20 +270,17 @@ public class MainScreen {
                     postfix.add(l);
                 else if (l.id.equals("binaryOp") || l.id.equals("unaryOp")) {
                     if (st.isEmpty()) {
-                        if(!l.op.equals("+")) 
-                            st.push(l);
+                        st.push(l);
                     } else {
-                        if(st.peek().id.equals("openBracket")){                            
-                            if(!l.op.equals("+")) 
-                                st.push(l);
+                        if (st.peek().id.equals("openBracket")) {
+                            st.push(l);
                             continue;
                         }
-                        while (!st.isEmpty() && getPrecedence(st.peek().op) >= getPrecedence(l.op)) {
+                        while (!st.isEmpty() && getPrecedence(st.peek()) >= getPrecedence(l)) {
                             postfix.add(st.peek());
                             st.pop();
                         }
-                        if(!l.op.equals("+")) 
-                            st.push(l);
+                        st.push(l);
                     }
                 } else if (l.id.equals("openBracket")) {
                     st.push(l);
@@ -294,23 +296,20 @@ public class MainScreen {
                 postfix.add(st.peek());
                 st.pop();
             }
-            postfix.forEach((p)->{
-                p.debug();
-            });
             Stack<Double> finalStack = new Stack<Double>();
             for (int i = 0; i < postfix.size(); i++) {
                 Literal l = postfix.get(i);
-                if (l.id.equals("number")){
+                if (l.id.equals("number")) {
                     finalStack.push(l.val);
                     continue;
                 }
                 double op1, op2, val;
-                
+
                 switch (l.op) {
                     case "+":
                         op1 = finalStack.peek();
                         finalStack.pop();
-                        if(finalStack.size()==0){
+                        if (finalStack.size() == 0) {
                             finalStack.push(op1);
                             break;
                         }
@@ -320,10 +319,19 @@ public class MainScreen {
                         finalStack.push(val);
                         break;
                     case "-":
-                        op1 = finalStack.peek();
-                        finalStack.pop();
-                        val = 0- op1;
-                        finalStack.push(val);
+                        if(l.id.equals("binaryOp")){    
+                            op1 = finalStack.peek();
+                            finalStack.pop();
+                            op2 = finalStack.peek();
+                            finalStack.pop();
+                            val = op2 - op1;
+                            finalStack.push(val);
+                        }else{
+                            op1 = finalStack.peek();
+                            finalStack.pop();
+                            val = -op1;
+                            finalStack.push(val);
+                        }
                         break;
                     case "*":
                         op1 = finalStack.peek();
@@ -433,11 +441,12 @@ public class MainScreen {
             }
             stack.clear();
             double finalAns = 0;
-            while(!finalStack.empty()){
+            while (!finalStack.empty()) {
                 finalAns += finalStack.peek();
                 finalStack.pop();
             }
-            if(finalAns==0) return;
+            if (finalAns == 0)
+                return;
             String s = String.format("%.4f", finalAns);
             for (int i = 0; i < s.length(); i++) {
                 String t = "" + s.charAt(i);
@@ -445,7 +454,7 @@ public class MainScreen {
                     pressDigit(Integer.parseInt(t));
                 if (isDot(t))
                     pressDot(".");
-                if(isBinaryOp(t))
+                if (isBinaryOp(t))
                     pressBinaryOp(t);
             }
 
@@ -501,7 +510,7 @@ public class MainScreen {
     }
 
     private void pressBinaryOp(String n) {
-        if (stack.isEmpty()) {            
+        if (stack.isEmpty()) {
             if (n.equals("-")) {
                 stack.add(new Symbol("" + n, 0, -1, "" + n, -1));
                 renderInfo();
@@ -527,9 +536,9 @@ public class MainScreen {
             stack.add(new Symbol("" + n, top.balancer, -1, "" + n, -1));
         } else if (isFactorialOp(top.id)) {
             stack.add(new Symbol("" + n, top.balancer, -1, "" + n, -1));
-        } else if (isOpenBracket(top.id)) {      
+        } else if (isOpenBracket(top.id)) {
             if (n.equals("-")) {
-                stack.add(new Symbol("" + n,top.balancer, -1, "" + n, -1));
+                stack.add(new Symbol("" + n, top.balancer, -1, "" + n, -1));
             }
         } else if (isCloseBracket(top.id)) {
             stack.add(new Symbol("" + n, top.balancer, -1, "" + n, -1));
@@ -539,7 +548,7 @@ public class MainScreen {
 
     private void pressDot(String n) {
         if (stack.isEmpty()) {
-            stack.add(new Symbol("0",0,0,"0",1));
+            stack.add(new Symbol("0", 0, 0, "0", 1));
             pressDot(".");
             renderInfo();
             return;
@@ -677,8 +686,8 @@ public class MainScreen {
                 pressDigit(Integer.parseInt("" + s.charAt(i)));
             if (isDot("" + s.charAt(i)))
                 pressDot(".");
-            if(isBinaryOp(""+s.charAt(i)))
-                pressBinaryOp(""+s.charAt(i));
+            if (isBinaryOp("" + s.charAt(i)))
+                pressBinaryOp("" + s.charAt(i));
         }
     }
 
@@ -801,7 +810,6 @@ public class MainScreen {
         frame.setSize(900, 300);
         frame.setResizable(false);
         frame.setLocationRelativeTo(null);
-
         // Implement Key Events
 
         KeyboardFocusManager manager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
